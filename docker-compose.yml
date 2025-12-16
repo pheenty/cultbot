@@ -1,0 +1,7 @@
+services:
+  cultbot:
+    build: .
+    volumes:
+      - ./LORE.txt:/app/lore.txt
+    env_file:
+      - .env
