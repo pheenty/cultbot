@@ -66,13 +66,13 @@ static TRIGGER_AC: Lazy<AhoCorasick> = Lazy::new(|| {
 });
 
 static DISABLE_AC: Lazy<AhoCorasick> = Lazy::new(|| {
-    let splitter: char = env::var("DISABLE_SPLITTER")
+    let splitter: char = env::var("DISABLER_SPLITTER")
         .unwrap_or_else(|_| {
-            println!("WARNING: expected DISABLE_SPLITTER in the environment, but it was not found. Falling back to \"~\".");
+            println!("WARNING: expected DISABLER_SPLITTER in the environment, but it was not found. Falling back to \"~\".");
             "~".to_owned()
         })
         .trim().parse()
-        .expect("ERROR: Failed to parse DISABLE_SPLITTER. Is it a character?");
+        .expect("ERROR: Failed to parse DISABLER_SPLITTER. Is it a character?");
 
     let triggers: Vec<String> = env::var("DISABLERS")
         .expect("ERROR: Expected DISABLERS in the environment")
@@ -103,21 +103,26 @@ fn time_now() -> u64 {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
+        let link = msg.link();
+        print!("INFO: Got message {link}. ");
         let msg_lowercase = msg.content.to_lowercase();
 
         if DISABLE_AC.is_match(&msg_lowercase) {
             DISABLED_UNTIL.store(time_now() + *DISABLE_FOR, Ordering::Relaxed);
+            println!("Bot is disabled now.");
             // TODO sad reaction
             return;
         }
 
         if msg.author.bot
             || !rand::rng().random_bool(*CHANCE)
-            || time_now() > DISABLED_UNTIL.load(Ordering::Relaxed)
+            || DISABLED_UNTIL.load(Ordering::Relaxed) > time_now()
             || !TRIGGER_AC.is_match(&msg_lowercase) {
-            return;
+                println!("Doing nothing.");
+                return;
         }
 
+        println!("Sending lore");
         let random_lore = &LORE[rand::rng().random_range(0..LORE.len())];
         if let Err(why) = msg.reply(&ctx, random_lore).await {
             println!("ERROR: can't send message: {why:?}");
