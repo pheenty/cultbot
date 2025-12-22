@@ -2,10 +2,13 @@ FROM rust:alpine
 
 WORKDIR /app
 
+RUN apk add musl-dev
+
 COPY . .
 
-RUN apk add musl-dev \
-    && cargo build --release
+RUN cargo build --release
+
+RUN strip target/release/cultbot
 
 FROM scratch
 
